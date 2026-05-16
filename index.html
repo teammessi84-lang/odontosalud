@@ -1035,11 +1035,12 @@ async function sendIA(){
       if(m.role==='user' && i===0) text = sysPrompt + '\n\nUsuario: ' + m.content;
       return { role: m.role==='assistant'?'model':'user', parts:[{text:text}] };
     });
-    const resp = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${key}`,{
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${key}`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        contents: geminiContents,
+        system_instruction:{parts:[{text:sysPrompt}]},
+        contents: iaChatHistory.map(function(m){return{role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]};}),
         generationConfig:{maxOutputTokens:800,temperature:0.5}
       })
     });
