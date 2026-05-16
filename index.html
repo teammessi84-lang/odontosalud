@@ -1029,20 +1029,17 @@ async function sendIA(){
     'Cuando no hay datos de hoy, dilo claramente. ' +
     'Sé conciso pero completo. Usa emojis para hacer la respuesta más amigable. ' +
     'DATOS ACTUALES DEL SALÓN:\n' + buildContext();
-    const geminiMessages = iaChatHistory.map(m=>({
-      role: m.role==='assistant'?'model':'user',
-      parts:[{text: m.role==='user' && iaChatHistory.indexOf(m)===0 ? sysPrompt+'\n\nUsuario: '+m.content : m.content}]
-    }));
-    if(geminiMessages.length===1) geminiMessages[0].parts[0].text = sysPrompt+'\n\nUsuario: '+msg;
+    // Construir mensajes para Gemini, con el sysPrompt dentro del primer mensaje de usuario
+    const geminiContents = iaChatHistory.map(function(m, i){
+      let text = m.content;
+      if(m.role==='user' && i===0) text = sysPrompt + '\n\nUsuario: ' + m.content;
+      return { role: m.role==='assistant'?'model':'user', parts:[{text:text}] };
+    });
     const resp = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${key}`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        system_instruction:{parts:[{text:sysPrompt}]},
-        contents: iaChatHistory.map(function(m){return {
-          role: m.role==='assistant'?'model':'user',
-          parts:[{text:m.content}]
-        };}),
+        contents: geminiContents,
         generationConfig:{maxOutputTokens:800,temperature:0.5}
       })
     });
