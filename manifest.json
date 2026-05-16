@@ -1,0 +1,27 @@
+{
+  "name": "Asistencia 2°B Primaria",
+  "short_name": "Asistencia 2°B",
+  "description": "Registro de asistencia con IA para 2°B de Primaria",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a4a32",
+  "theme_color": "#0a4a32",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "screenshots": []
+}
