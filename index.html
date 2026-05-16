@@ -293,11 +293,13 @@ header p{font-size:10px;opacity:.75;margin-top:1px}
         Configura tu API Key arriba para comenzar.</div>
       </div>
     </div>
-    <div id="ia-suggestions" style="padding:8px 12px;display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid #f0f0f0">
+    <div id="ia-suggestions" style="padding:8px 12px;display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid #f0f0f0;overflow-x:auto">
       <button class="ia-sugg" onclick="sendSugg(this)">¿Quién faltó hoy?</button>
-      <button class="ia-sugg" onclick="sendSugg(this)">¿Quién llegó tarde hoy?</button>
+      <button class="ia-sugg" onclick="sendSugg(this)">¿Quién llegó tarde?</button>
       <button class="ia-sugg" onclick="sendSugg(this)">Resumen de hoy</button>
       <button class="ia-sugg" onclick="sendSugg(this)">¿Quién tiene más faltas?</button>
+      <button class="ia-sugg" onclick="sendSugg(this)">¿Cuántos presentes hoy?</button>
+      <button class="ia-sugg" onclick="sendSugg(this)">Lista de alumnos</button>
     </div>
     <div style="padding:10px 12px;border-top:1px solid #f0f0f0;display:flex;gap:8px">
       <input id="ia-inp" type="text" placeholder="Pregunta sobre la asistencia..." style="flex:1;padding:10px 13px;border:1.5px solid #ddd;border-radius:22px;font-size:14px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter')sendIA()">
@@ -1019,25 +1021,29 @@ async function sendIA(){
   iaChatHistory.push({role:'user',content:msg});
   addTyping();
   try{
-    const sysPrompt = `Eres un asistente amable para una maestra de 2°B de primaria. Respondes preguntas sobre asistencia del salón de forma clara, breve y en español. Usa los datos que se te proporcionan. Si preguntan por un alumno específico, búscalo aunque el nombre esté incompleto.
-
-DATOS ACTUALES DEL SALÓN:
-${buildContext()}`;
+    const sysPrompt = 'Eres un asistente inteligente para una maestra de 2 grado B de primaria. ' +
+    'Respondes preguntas sobre asistencia de forma clara, amable y en español peruano. ' +
+    'Analiza los datos del salón y da respuestas útiles y concretas. ' +
+    'Si preguntan por un alumno, búscalo aunque el nombre sea parcial o tenga errores. ' +
+    'Puedes hacer cálculos: porcentajes, promedios, comparaciones entre alumnos. ' +
+    'Cuando no hay datos de hoy, dilo claramente. ' +
+    'Sé conciso pero completo. Usa emojis para hacer la respuesta más amigable. ' +
+    'DATOS ACTUALES DEL SALÓN:\n' + buildContext();
     const geminiMessages = iaChatHistory.map(m=>({
       role: m.role==='assistant'?'model':'user',
       parts:[{text: m.role==='user' && iaChatHistory.indexOf(m)===0 ? sysPrompt+'\n\nUsuario: '+m.content : m.content}]
     }));
     if(geminiMessages.length===1) geminiMessages[0].parts[0].text = sysPrompt+'\n\nUsuario: '+msg;
-    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,{
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${key}`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         system_instruction:{parts:[{text:sysPrompt}]},
-        contents: iaChatHistory.map(m=>({
+        contents: iaChatHistory.map(function(m){return {
           role: m.role==='assistant'?'model':'user',
           parts:[{text:m.content}]
-        })),
-        generationConfig:{maxOutputTokens:600,temperature:0.7}
+        };}),
+        generationConfig:{maxOutputTokens:800,temperature:0.5}
       })
     });
     removeTyping();
