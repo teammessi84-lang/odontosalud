@@ -16,58 +16,8 @@
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <!-- Firebase -->
-<script>
-  function loadScript(src){ return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s);}); }
-  window.addEventListener('DOMContentLoaded', async function() {
-    try {
-      await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
-      await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js');
-    } catch(e) { console.error('No se pudo cargar Firebase SDK', e); return; }
-  const firebaseConfig = {
-    apiKey: "AIzaSyCd489bwHV_bPfLGVLaKYfOzsJpNqtHqzQ",
-    authDomain: "asistencia2do-43d0b.firebaseapp.com",
-    databaseURL: "https://asistencia2do-43d0b-default-rtdb.firebaseio.com",
-    projectId: "asistencia2do-43d0b",
-    storageBucket: "asistencia2do-43d0b.firebasestorage.app",
-    messagingSenderId: "266733492959",
-    appId: "1:266733492959:web:2795f9e0cfe3a4e5cba76a"
-  };
 
-  try {
-    const app = firebase.initializeApp(firebaseConfig);
-    const db  = firebase.database();
 
-    window._db      = db;
-    window._ref     = (d, path) => d.ref(path);
-    window._set     = (r, val) => r.set(val);
-    window._fbReady = true;
-
-    db.ref('alumnos').on('value', snap => {
-      const val = snap.val();
-      window.alumnos = val ? Object.values(val) : [];
-      document.getElementById('hdate').textContent = fmtDate(new Date());
-      if(typeof renderAlus === 'function') renderAlus();
-      if(typeof renderRec  === 'function') renderRec();
-      const pa = document.getElementById('page-asistencia');
-      if(pa && pa.classList.contains('active') && typeof renderAsist === 'function') renderAsist();
-    }, err => {
-      console.error('Firebase alumnos error:', err);
-      document.getElementById('hdate').textContent = '⚠️ Error Firebase: ' + err.code;
-    });
-
-    db.ref('asistencia').on('value', snap => {
-      window.asist = snap.val() || {};
-      if(typeof renderRec === 'function') renderRec();
-      const pa = document.getElementById('page-asistencia');
-      if(pa && pa.classList.contains('active') && typeof renderAsist === 'function') renderAsist();
-    });
-
-  } catch(e) {
-    console.error('Firebase error:', e);
-    window._fbReady = false;
-  }
-  }); // end DOMContentLoaded
-</script>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
@@ -412,11 +362,11 @@ function saveAlumnos(){
   if(!window._fbReady){toast('⚠️ Sin conexión a Firebase');return}
   const obj={};
   window.alumnos.forEach(a=>obj[a.id]=a);
-  firebase.database().ref('alumnos').set(obj);
+  if(window._db) window._db.ref('alumnos').set(obj);
 }
 function saveAsist(){
   if(!window._fbReady){toast('⚠️ Sin conexión a Firebase');return}
-  firebase.database().ref('asistencia').set(window.asist);
+  if(window._db) window._db.ref('asistencia').set(window.asist);
 }
 
 // ── TABS ──
@@ -1125,14 +1075,66 @@ document.addEventListener('DOMContentLoaded', function(){
   renderAlus(); renderRec();
 });
 
-// Mostrar banner si Firebase no conectó en 3 segundos
+// Firebase status check
 setTimeout(()=>{
   if(!window._fbReady){
-    document.getElementById('setup-banner').classList.add('show');
-    document.getElementById('fb-status').textContent='🔴 Firebase no configurado';
-    document.getElementById('fb-status').style.color='#f5a0a0';
+    var el = document.getElementById('hdate');
+    if(el) el.textContent = '⚠️ Sin conexión — verifica internet';
   }
-},3000);
+},5000);
+</script>
+<script>
+(function() {
+  function loadFB(src, cb) {
+    var s = document.createElement('script');
+    s.src = src;
+    s.onload = cb;
+    s.onerror = function() { 
+      document.getElementById('hdate').textContent = '❌ No se pudo cargar Firebase';
+    };
+    document.head.appendChild(s);
+  }
+
+  loadFB('https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js', function() {
+    loadFB('https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js', function() {
+      try {
+        var cfg = {
+          apiKey: "AIzaSyCd489bwHV_bPfLGVLaKYfOzsJpNqtHqzQ",
+          authDomain: "asistencia2do-43d0b.firebaseapp.com",
+          databaseURL: "https://asistencia2do-43d0b-default-rtdb.firebaseio.com",
+          projectId: "asistencia2do-43d0b",
+          storageBucket: "asistencia2do-43d0b.firebasestorage.app",
+          messagingSenderId: "266733492959",
+          appId: "1:266733492959:web:28ddaec063221061cba76a"
+        };
+        firebase.initializeApp(cfg);
+        var db = firebase.database();
+        window._fbReady = true;
+        window._db = db;
+
+        db.ref('alumnos').on('value', function(snap) {
+          window.alumnos = snap.val() ? Object.values(snap.val()) : [];
+          if(typeof renderAlus==='function') renderAlus();
+          if(typeof renderRec==='function') renderRec();
+          var pa=document.getElementById('page-asistencia');
+          if(pa && pa.classList.contains('active') && typeof renderAsist==='function') renderAsist();
+        }, function(err) {
+          document.getElementById('hdate').textContent = 'Error BD: ' + err.code;
+        });
+
+        db.ref('asistencia').on('value', function(snap) {
+          window.asist = snap.val() || {};
+          if(typeof renderRec==='function') renderRec();
+          var pa=document.getElementById('page-asistencia');
+          if(pa && pa.classList.contains('active') && typeof renderAsist==='function') renderAsist();
+        });
+
+      } catch(e) {
+        document.getElementById('hdate').textContent = 'Error: ' + e.message;
+      }
+    });
+  });
+})();
 </script>
 </body>
 </html>
